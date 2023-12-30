@@ -1,0 +1,54 @@
+```{r}
+library(fpp3)
+library(patchwork)
+# methods for trend and no seasonality
+```
+
+
+```{r}
+aus_economy <- global_economy %>%
+  filter(Code == "AUS") %>%
+  mutate(Pop = Population / 1e6)
+aus_economy
+```
+
+```{r}
+autoplot(aus_economy, Pop) +
+  labs(y = "Millions", title = "Australian population")
+```
+
+
+```{r}
+fit <- aus_economy %>%
+  model(
+    SES = ETS(Pop~ error("A") + trend("A") + season("N")),
+    AAN = ETS(Pop ~ error("A") + trend("A") + season("N")),
+    AAdn = ETS(Pop ~ error("A") + trend("Ad", phi = 0.8) + season("N"))
+    # always we can try dumped method
+  )
+fit
+```
+
+```{r}
+tidy(fit)
+```
+
+
+```{r}
+# we use select cause models are specified in columns
+fit %>%
+  select(AAN) %>%
+  components() %>%
+  autoplot()
+```
+```{r}
+fc <- 
+  fit %>%
+  forecast(h=100)
+fit
+```
+
+```{r}
+
+```
+

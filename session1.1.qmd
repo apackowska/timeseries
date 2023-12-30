@@ -1,0 +1,266 @@
+
+
+# command option + I to do it:
+
+```{r}
+library(fpp3)
+```
+
+don't do this:
+
+```{r}
+from pandas import *
+```
+
+do this not to get conflicts
+
+```{r}
+import pandas as pd
+```
+
+```{r}
+install.packages('tidyverse')
+library(tidyverse)
+install.packages('nycflights13')
+library(nycflights13)
+```
+
+```{r}
+# Example 1
+date1 <- ymd("2017-01-31")
+date_1 <- ymd("2017.01.02")
+date1
+date_1
+class(date1)
+```
+
+```{r}
+# Example 2
+date2 <- mdy("January 31st, 2017")
+date2
+class(date2)
+```
+
+```{r}
+# Example 3
+date3 <- dmy("31-Jan-2017")
+date3
+```
+
+```{r}
+# Example 4 - unquoted numbers
+date4 <- ymd(20170131)
+date4
+class(date4)
+```
+
+```{r}
+# Dataset from package nycflights13
+flights %>% 
+  select(year, month, day, hour, minute)
+```
+
+```{r}
+flights %>% 
+  select(year, month, day, hour, minute) %>% 
+  
+  mutate(
+    date = make_date(year, month, day), # Create new date colun
+    datetime = make_datetime(year, month, day, hour, minute) # Create date-time
+  )
+```
+
+```{r}
+today()
+```
+
+```{r}
+as_datetime(today())
+now()
+as_datetime(now())
+```
+
+```{r}
+date1 <- ymd(19700110)
+date2 <- ymd(20230830)
+
+# Number of days elapsed since "1970-01-01" and "1970-01-10"
+as.integer(date1)
+as.integer(date2)
+#  the number of days elapsed since 1970 January 1st:
+```
+
+```{r}
+as_date(9)
+```
+
+```{r}
+# Ten years offset in days from 1970-01-01.
+# +2 accounts for two leap years
+as_date(365 * 10 + 2)
+```
+
+```{r}
+#NOTE: the enclosing parenthesis display the output without an additional line of code
+(ym1 <- yearmonth(ymd("2017-01-31")))
+class(ym1)
+```
+
+```{r}
+#NOTE: the enclosing parenthesis display the output without an additional line of code
+(yq1 <- yearquarter(ymd("2017-01-31")))
+```
+
+```{r}
+# Sequence of 6 months steps starting in Januart 2012 and advancing 
+# for 60 months (5 years) in steps of six months
+seq_months <- yearmonth("2012-01-01") + seq(0, 60, by = 6)
+seq_months
+# default is adding months not years when we have yearmonth object
+```
+
+```{r}
+# Sequence of 2 quarters steps starting in January 2012 and advancing 
+# for 20 quarters (4 years) in steps of 2 quarters.
+seq_quarters <- yearquarter("2012-01-01") + seq(0, 20, by = 2)
+seq_quarters
+```
+
+```{r}
+data_1 <- tsibble(
+  year = 2012:2016,
+  y = c(123, 39, 78, 52, 110),
+  index = year
+)
+data_1
+# there is no key column, cause year is a key itself
+```
+
+```{r}
+data_1 <- tibble(
+  year = 2012:2016,
+  y = c(123, 39, 78, 52, 110)
+) 
+data_1
+
+as_tsibble(data_1, index = year)
+
+```
+
+```{r}
+data_1 <- tibble(
+  year = 2012:2016,
+  y = c(123, 39, 78, 52, 110)
+) %>%
+as_tsibble(index = year)
+
+data_1
+```
+
+```{r}
+flights_ts <- 
+  flights %>%
+  
+  #Select columns of interest
+  select(year, carrier, flight, month, day, hour, minute, distance) %>%
+  
+  #Create timestamp
+  mutate(time = make_datetime(year, month, day, hour, minute)) %>%
+
+  #Drop columns
+  select(time, everything(), -c(year, month, day, hour, minute)) %>%
+
+  #Create a tsibble, 
+  #NOTE: flight and carrier are both required to uniquely identify observations
+  as_tsibble(key=c(carrier, flight), index = time)
+
+
+#if we only choose flight as a key it won't work, cause flight number can be the same among the carriers
+#Inspect result
+flights_ts
+# it refused to drop time as it is an index and in tsibble is a must
+```
+
+```{r}
+view(flights)
+```
+
+```{r}
+#tsibble has some constraints so we first make changes to tribble and then cast as tsibble
+#the alternative of group by is index, which will work on tsibble
+```
+
+```{r}
+flights_ts %>%
+  group_by(month = yearmonth(time)) %>% # group by month
+  summarise(mean_dist = mean(distance))
+```
+```{r}
+flights_ts %>%
+  index_by(month = yearmonth(time)) %>%
+  summarise(mean_dist = mean(distance))
+```
+```{r}
+
+```{r}
+NO2_weekly <- 
+  pollution %>%
+  as.tibble() %>%
+  group_by(weeks = week(time_stamp)) %>%
+  summarise(mean_pollution = mean(NO2, na.rm = TRUE)) %>%
+  mutate(time = year(pollution$time_stamp)) %>%
+  select(time, mean_pollution)
+NO2_weekly
+```
+```
+```{r}
+```{r}
+NO2_weekly <- 
+  pollution %>%
+  index_by(weeks = week(time_stamp)) %>%
+  summarise(mean_NO2 = mean(NO2, na.rm = TRUE)) %>%
+  mutate(year_month = yearmonth(time_stamp)) %>%
+  filter(time_stamp >= ymd("2013-03-01") & time_stamp < ymd("2014-03-01"))
+    
+```
+```
+```{r}
+
+```{r}
+NO2_weekly <- 
+  pollution %>%
+  index_by(weeks = week(time_stamp)) %>%
+  mutate(
+    year = year(time_stamp),
+    month = month(time_stamp),
+    ym = make_date(year, month)
+  ) %>%
+  summarise(mean_pollution = mean(NO2, na.rm = TRUE)) %>%
+  select(weeks, mean_pollution)
+NO2_weekly
+```
+
+
+```{r}
+NO2_monthly <-
+  pollution %>%
+  index_by(months = month(time_stamp)) %>%
+  summarise(mean_pollution = mean(NO2, na.rm = TRUE))
+NO2_monthly
+```
+```
+```{r}
+```{r}
+NO2_weekly <-
+  pollution %>%
+  filter(yearmonth(time_stamp)>= yearmonth("2013-03") & 
+           yearmonth(time_stamp) < yearmonth("2014-03")) %>%
+  index_by(yearweek = yearweek(time_stamp)) %>%
+  summarise(mean_pollution = mean(NO2, na.rm = TRUE))
+NO2_weekly
+```
+```
+```{r}
+hist(pollution$NO2)
+```
+

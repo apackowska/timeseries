@@ -1,0 +1,14 @@
+```{r}
+library(fpp3)
+```
+```{r}
+# in RMSE we take sqr root to reverse the scale back
+# mean is sensible to outliers
+# RMSE is squaring, so makes big values greater and small smaller, it is more sensible with outliers
+```
+
+```{r}
+# RMSE has no such a direct definition, MAPE and MAE has it
+do exercise of example 2 05_6_A
+```
+

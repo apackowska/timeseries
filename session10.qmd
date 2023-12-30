@@ -1,0 +1,93 @@
+```{r}
+# errors should always match the seasonal
+#In the ETS() formula:
+
+#ETS(VARIABLE ~ error("M") + trend("A") + season("M"))
+```
+
+```{r}
+# RMSE the way of quantifying the error
+```
+
+```{r}
+# we have multiplicative errors that's why prediction interval are wider for higher time series and shallower for lower time series
+```
+
+```{r}
+library(fpp3)
+```
+
+```{r}
+nz_arrivals <- aus_arrivals %>% filter(Origin == "NZ")
+nz_arrivals %>% autoplot()
+```
+
+
+```{r}
+nz_tr <-
+  nz_arrivals %>%
+  slice(1:(n()-8))
+nz_tr
+```
+
+```{r}
+nz_tr %>%
+  autoplot() +
+  scale_x_yearquarter(breaks = "5 years", minor_breaks = "1 years")
+```
+
+```{r}
+# damped method can also me additive
+fit <- 
+  nz_tr %>%
+  model(
+    hw_additive = ETS(Arrivals ~ error("A")+ trend("A")+season("A")),
+    hw_multiplicative= ETS(Arrivals ~ error("M")+ trend("A")+season("M")),
+    hw_multiplicative_damped= ETS(Arrivals ~ error("M")+ trend("Ad")+season("M")),
+    hw_auto =ETS(Arrivals)
+  )
+fit
+```
+
+
+```{r}
+fc <-
+  fit %>%
+  forecast(h=12)
+fc
+```
+
+```{r}
+fc %>%
+  autoplot(nz_tr, level = FALSE)
+# in terms of point forecast no much difference between models
+```
+
+```{r}
+fc %>%
+  filter(.model =="hw_multiplicative") %>%
+  autoplot(nz_tr)
+# let's see about intervals forecast
+```
+
+```{r}
+fc %>%
+  filter(.model =="hw_additive") %>%
+  autoplot(nz_tr)
+# this model seems better, thinner forecast inrervals, but no right, ts were multiplicative
+```
+```{r}
+# if we don't specify anything in the model will use AIC creterion and pick the one with smallest AIC
+# it tries many models all of the possible combinations of "A", "N", "M"
+fit %>%
+  select("hw_auto") %>%
+  report()
+```
+```{r}
+fit %>%
+  select("hw_auto") %>%
+  gg_tsresiduals()
+# we hope that they actually have mean zero
+# that's why in metrics we square or tka abs
+```
+

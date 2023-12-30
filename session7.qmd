@@ -1,0 +1,55 @@
+```{r}
+# 05_2
+# portmanteau test
+# normally we have autocorrelation graph, we have limits where autocorrelation is negligible
+# one test on each spike showing autocorrelation
+# we will get false positives
+# test summarises all autocor coffs and by squaring we make all of them positive, so then don't cancel out
+# it follows chi2 distribution
+# 10 for non-seasonal data and 2m for seasonal
+# df we use n-1 in the denominator to calculate degrees of freedom cause we're using sample variance not population variance
+
+```
+
+
+```{r}
+rm(list=ls())
+library(fpp3)
+library(readr)
+library(readxl)
+library(fma)
+library(ggplot2)
+```
+
+```{r}
+retail_series <- aus_retail %>%
+  filter(`Series ID` == "A3349767W") 
+
+retail_series %>% autoplot()
+```
+```{r}
+# we made transformation to do the series additive
+fit_dcmp <- retail_series %>% 
+  model(
+    decomp = decomposition_model(
+                # Specify the decomposition scheme to be used.
+                STL(log(Turnover)),
+                # Specify a model for the seasonally adjusted component (in this case, a drift).
+                RW(season_adjust ~ drift()),
+                # Specify a model for the seasonal component (unnecesary, since SNAIVE is the default).
+                SNAIVE(season_year)
+            )
+  )
+
+fit_dcmp
+```
+```{r}
+fit_dcmp %>% gg_tsresiduals()
+```
+
+```{r}
+# we made log transformation, so innovative residuals are different from just residuals
+# we get bp_statistics and p-value - reject H0
+fit_dcmp %>% augment() %>% features(.innov, box_pierce, lag = 24, dof = 0)
+```
+

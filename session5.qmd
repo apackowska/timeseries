@@ -1,0 +1,144 @@
+
+```{r}
+library(fpp3)
+library(seasonal)
+library(fma)
+library(ggplot2)
+rm(list=ls())
+```
+
+```{r}
+# the fitted values will decide how good the model is
+```
+
+```{r}
+# benchmarking models - easy models to compare such as naive model, which model gives smaller errors, if simple are as good, we should not use complex ones
+```
+
+```{r}
+bricks <- aus_production %>%
+  filter_index("1970 Q1" ~ "2004 Q4") %>%
+  select(Bricks)
+
+head(bricks)
+```
+
+```{r}
+fit <-
+  bricks %>%
+  model(
+    mymodel = MEAN(Bricks)
+  )
+fit
+# one row cause we have 1 model that we fitted
+```
+
+```{r}
+# innovation is here the same as resid, the augment gives fitted values
+fit_values <- fit %>%
+  augment()
+```
+
+
+```{r}
+# produce forecast, 8 steps ahead, quaterly data, so 2 years, Brics mean and sd, the column mean 
+forecasts <- fit %>% forecast(h = 8)
+forecasts
+```
+
+```{r}
+# it tells you the value of parameters
+tidy(fit)
+```
+```{r}
+# Naive model
+```
+
+```{r}
+# yearly data, so we won't see seasonal, it's due to variantion of calendar, it should be sampled less than yearly data
+```
+
+
+```{r}
+aus_exports <- filter(global_economy, Country == "Australia")
+autoplot(aus_exports, Exports)
+```
+
+
+```{r}
+fit <- aus_exports %>% model(Naive = NAIVE(Exports))
+fit
+```
+
+```{r}
+# Extract fitted values and inspect table
+# fitted values are one step ahead of the previous one, so it the naive is NAs, for the seasonal Naive all seasonal will be NAs
+# the same unless we specify transformations for example to change from multiplicative to additive scheme
+
+fitted_vals <- fit %>% augment()
+head(fitted_vals) 
+```
+
+```{r}
+# Seasonal Naive
+# m is the lenght of seasonal period, k =0 for the fist season
+# it tells you pick always the last observed season
+# making forcast based on last season, while Naive extended points
+```
+
+```{r}
+# for now we don't need lag parameter
+fit <- employed %>% model(SNaive = SNAIVE(Employed ~ lag("year")))
+fit
+```
+```{r}
+# Extract fitted values and inspect table
+fitted_vals <- fit %>% augment()
+head(fitted_vals) 
+```
+```{r}
+# Print fitted values along with the original series
+fitted_vals %>% 
+  filter(.model == "SNaive") %>%
+  autoplot(Employed, colour = "gray") +
+  geom_line(aes(y=.fitted), colour = "blue", linetype = "dashed")
+```
+```{r}
+# drift method
+# we can compute delta only for the second point
+```
+
+
+```{r}
+fit <- employed %>% 
+  model(
+    decomp = decomposition_model(
+                # Specify the decomposition scheme to be used.
+                STL(Employed),
+                # Specify a model for the seasonally adjusted component (in this case, a drift).
+                RW(season_adjust ~ drift()), #season_adjust is the name of column
+                # Specify a model for the seasonal component (unnecesary, since SNAIVE is the default).
+                SNAIVE(season_year)
+            )
+  )
+
+fit
+```
+
+```{r}
+ # multiplicative series, we can use classical decomposition, the name of seasonal_adjust can be different, STL only takes the additive decomposition
+```
+
+```{r}
+retail_series <- aus_retail %>%
+  filter(`Series ID` == "A3349767W")
+
+head(retail_series)
+```
+
+
+
+```{r}
+retail_series
+```
+

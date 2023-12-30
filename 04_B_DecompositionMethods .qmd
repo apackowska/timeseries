@@ -1,0 +1,132 @@
+
+
+```{r}
+library(fpp3)
+library(fma)
+rm(list=ls())
+```
+
+
+```{r}
+# Filter the series and select relevant columns
+us_retail_employment <- us_employment %>%
+  filter(year(Month) >= 1990, Title == "Retail Trade") %>%
+  select(-Series_ID)
+```
+
+```{r}
+# Let us compute the classical decomposition using the function in the feasts library:
+classical_dec <- us_retail_employment %>%
+  
+  # Fit model
+  model(
+    classical = classical_decomposition(Employed, type = "additive"),
+    #classical_m = classical_decomposition(Employed, type="multiplikative")
+  ) 
+
+# Examine the output
+classical_dec
+```
+
+
+```{r}
+classical_comps <- 
+  classical_dec %>% 
+  components()
+
+# Examine the output
+classical_comps
+```
+```{r}
+classical_comps %>%
+  autoplot()
+```
+```{r}
+classical_comps %>%
+  ACF(random) %>%
+  autoplot()
+# this decomposition is not super good
+```
+```{r}
+# STL main components
+# window is the box for which you calculate the statistics, we adjust the number of points in a window, more point it means averaging more things, so calculations change not so much; must be odd number; change the number to a smaller one for the calculations to change quicker
+```
+
+
+```{r}
+# stl only works with additive, we can specify windows tho
+stl_dcmp_1 <- 
+  us_retail_employment %>%
+  model(
+    #classical = classical_decomposition(Employed, type = "additive")
+    stl = STL(Employed)) %>%
+  components()
+```
+
+```{r}
+stl_dcmp_1 %>% autoplot()
+
+```
+```{r}
+classical_comps %>% autoplot()
+```
+```{r}
+# the variance of random is the smallest in both models, let's check for the autocorrelation
+```
+
+```{r}
+stl_dcmp_1 %>%
+  ACF(remainder) %>%
+  autoplot()
+```
+```{r}
+classical_comps %>%
+  ACF(random) %>%
+  autoplot()
+```
+```{r}
+# the variance of remeinder is due to financial crises, the trend is not able to capture it fast enough and it lands in remeinder that's why we need smaller window value
+# with smaller number of trend window the credit crunch is captured by trend graph rather than remainder
+# we didnt have to change seasonal component window, cause changing the trends window solved the problem
+```
+
+```{r}
+us_retail_employment %>%
+  model(
+    STL(Employed ~ trend(window = 21) + # Manually change this value 
+                                            # from the default 21
+                   season(window = 13), # Replace with "periodic" 
+                                            # or an integer other than 13
+        robust = TRUE)) %>%
+  #robust to outliers
+  components() %>%
+  autoplot()
+```
+
+
+```{r}
+ STL_windows <- 
+  us_retail_employment %>%
+  model(
+    STL(Employed ~ trend(window = 7) + # Manually change this value 
+                                            # from the default 13
+                   season(window = 13), # Replace with "periodic" 
+                                            # or an integer other than 21
+        robust = TRUE)) %>%
+  components() 
+
+STL_windows %>%
+  autoplot()
+```
+```{r}
+STL_windows %>%
+  ACF(remainder, lag_max = 5*12) %>%
+  autoplot()
+  
+```
+```{r}
+ # why NA's on classical decomposition? it takes moving average, the trend is computed as mean value of some number of points, let's say 5. It has limit, cause you need 2 points to the left and 2 to the right. The moving average results
+# in classical decomposition we can't specify the component
+# STS uses other techniques, it shifts windows
+```
+

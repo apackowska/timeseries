@@ -1,0 +1,249 @@
+
+```{r}
+library(fpp3)
+```
+
+
+```{r}
+# the difference between this:
+1:(15-2)
+```
+
+```{r}
+# and this pick from 1 to 15 and -2 from each instance
+1:15-2
+```
+```{r}
+aus_production
+```
+
+
+
+```{r}
+aus_production %>%
+  slice(1:(n()-12))
+```
+
+
+```{r}
+# want 80%
+nobs_80 <- as.integer(218*0.8)
+```
+
+```{r}
+aus_production %>%
+  slice(1:nobs_80)
+```
+```{r}
+# Extact the first 12 points (1 year) of data of each combination of State, Industry
+aus_retail %>%
+  group_by(State, Industry)  %>%
+  slice(1:12) %>% 
+  ungroup() # So that subsequent operations are not performed group-wise
+
+# putting somethig after ungroup will not make it group-wise, if before it will, try with nrow
+```
+```{r}
+n_test_years =3
+
+retail_test <- 
+  aus_retail
+  slice(1:(n()-12*n_test_years))
+retail_test
+```
+
+```{r}
+# Extract series
+retail_series <- aus_retail %>% 
+  filter(`Series ID` == "A3349767W")
+
+# Create train dataset
+n_test_years = 3
+
+retail_train <- 
+  retail_series %>% 
+  slice(1:(n()-12*n_test_years))
+
+# Check difference = 36
+nrow(retail_series) - nrow(retail_train)
+```
+
+
+```{r}
+retail_train %>%
+  autoplot()
+```
+
+```{r}
+retail_fit <- 
+  retail_train %>% 
+  model(stlf = decomposition_model(
+                # 1. Define model to be used for the decomposition
+                STL(log(Turnover) ~ trend(window = 7), robust = TRUE), 
+                
+                # 2. Define model for the seasonally adjusted component
+                RW(season_adjust ~ drift()) 
+            ))
+
+retail_fit
+```
+
+
+```{r}
+retail_fc <- 
+  retail_fit %>% 
+  forecast(h = 36)
+
+autoplot(retail_fc, retail_series, level = 80, point_forecast = lst(mean, median))
+```
+
+```{r}
+retail_fit %>%
+  augment()
+```
+```{r}
+model_vals <-  
+  retail_fit %>% 
+    augment()
+model_vals
+```
+
+```{r}
+residuals <- 
+  model_vals$Turnover - model_vals$.fitted
+residuals
+```
+```{r}
+mean(residuals, na.rm = TRUE)
+mean(abs(residuals), na.rm = TRUE)
+```
+
+
+```{r}
+# cross validation
+# the weakness of approach of dividing data into training and test is that the errors that we get are dependent on how we split the data if its 0.7 or 0.8
+# we fit models to each dataset, increasing it with one more point each time
+# calculate errors (MAE etc) of one step ahead forecasts and calculate average of them
+```
+
+```{r}
+google_stock <- 
+  gafa_stock %>%
+  filter(Symbol == "GOOG", year(Date) >= 2015) %>%
+  mutate(day = row_number()) %>%
+  select(day, everything()) %>%
+  update_tsibble(index = day, regular = TRUE) # regularly spaced, new index
+google_stock
+```
+```{r}
+google_2015 <- google_stock %>% filter(year(Date) == 2015)
+```
+
+
+```{r}
+google_2015 %>%
+  autoplot()
+```
+
+```{r}
+nobs_80 <-  as.integer(nrow(google_2015)*0.8)
+nobs_80
+```
+
+```{r}
+# streching to make many datasets
+google_2015_tr <- 
+  google_2015 %>%
+  stretch_tsibble(.init = nobs_80, .step = 1) %>% 
+  # init = size of the smallest dataset, at least as big as forecast horizon, step =  the number of obs we add each time
+  relocate(Date, Symbol, .id) # reorder column
+# id tells you about the new dataset
+
+google_2015_tr
+```
+```{r}
+max(google_2015_tr$.id)
+# the number of datasets that we created
+```
+
+
+```{r}
+# we have only 1 row, 1 column for each of 2 models
+fit <- 
+  google_2015 %>%
+  model(
+    mean = MEAN(Close),
+    drift = RW(Close ~ drift())
+    )
+fit
+```
+
+
+
+```{r}
+# now we fit_cv and will have for all ids 
+# we fit the models
+fit_cv <- 
+  google_2015_tr %>%
+  model(
+    mean = MEAN(Close),
+    drift = RW(Close ~ drift())
+  )
+fit_cv
+```
+
+
+```{r}
+fc <- 
+  fit %>%
+  forecast(h=10)
+fc
+```
+
+```{r}
+fc_cv <-
+  fit_cv %>%
+  forecast(h=10)
+fc_cv
+```
+```{r}
+# we have forecast and we want to compute accuracy metrics
+# now h will not reset
+fc_cv %>%
+  #group_by(.id, .model) %>%
+  mutate(h = row_number()) %>%
+  select(h, everything()) # Reorder columns
+  #ungroup() %>%
+```
+```{r}
+# here the counter will reset every time the model changes
+# if we only group by .model it will reset only for first 2 pages
+# as fable, stands for a forecast table, it is needed for accuracy function
+fc_cv_h <- 
+  fc_cv %>%
+  group_by(.id, .model) %>%
+  mutate(h = row_number()) %>%
+  select(h, everything()) %>%
+  ungroup() %>%
+  as_fable(response = "Close", distribution = Close) %>% 
+  select(h, everything()) # Reorder columns
+fc_cv_h
+```
+```{r}
+# without as_fable it woulnd't work
+# we feed to accuracy what we applied to stretch tsibble, the whole dataset, even if we now
+# just accuracy will give us one metric per model, one option with no h
+# we fitted many models to each training set to get parameters and now we use this on testing set and getting accuracy metrics
+# but what we put into accuracy is original dataset, but it will identify just the training
+fc_cv_h %>%
+  accuracy(google_2015) %>%
+  select(.model, MAE, RMSE, MAPE)
+```
+```{r}
+# the 2nd option is one metric for model and forecast horizon, now we create h
+# by default it takes argument c(".model"), so the result would be the same as above
+fc_cv_h %>%
+  accuracy(google_2015, by= c(".model", "h")) %>%
+  select(h, .model, MAE, RMSE, MAPE)
+```
+

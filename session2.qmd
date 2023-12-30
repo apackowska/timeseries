@@ -1,0 +1,170 @@
+
+```{r}
+library(fpp3)
+install.packages("GGally", dependencies = TRUE) # to generate a scatterplot matrix
+install.packages("fma", dependencies = TRUE) # to load the Us treasury bills dataset
+install.packages("patchwork", dependencies = TRUE) # Used to manage the relative location of ggplots
+library
+
+```
+
+```{r}
+install.packages("readr")
+library(readr)
+```
+
+```{r}
+aus_production %>%
+  
+  # Filter data to show appropriate timeframe
+  filter((year(Quarter) >= 1980 & year(Quarter)<= 2000)) %>%
+  
+  autoplot(Electricity) + 
+  
+  # Scale the x axis adequately
+  # scale_x_yearquarter used because the index is a yearquarter column
+  scale_x_yearquarter(date_breaks = "1 year",
+                      minor_breaks = "1 year") +
+  
+  # Flip x-labels by 90 degrees
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+aus_production
+```
+
+```{r}
+# breaks, we git vertical line without minor breaks, to find it more readible
+```
+
+```{r}
+# seasonal pattern - it happens depending on calendar variation
+```
+
+```{r}
+# autoplot will regonise data and do different things with different types
+```
+
+```{r}
+aus_production %>% 
+  
+  filter((year(Quarter) >= 1980 & year(Quarter)<= 2000)) %>%
+  
+  # The two lines below are equivalent to autoplot(Electricity)
+  ggplot(aes(x = Quarter, y = Electricity)) + 
+  geom_line() +
+  
+  # Scale the x axis adequately
+  # scale_x_yearquarter used because the index is a yearquarter column
+  scale_x_yearquarter(date_breaks = "1 year",
+                      minor_breaks = "1 year") +
+  
+  # Flip x-labels by 90 degrees
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+# we want to see if there is a trend in next graph, to see it we need to increase resolution of data
+```
+
+```{r}
+aus_production %>%
+  autoplot(Bricks) +
+# code to adjust axis
+# major breaks every 5 years and breaks every year
+scale_x_yearquarter(breaks = "5 years", minor_breaks = "1 year") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+# here we have 2 patterns, blue line is a trend, green line is a cycle
+```
+
+```{r}
+install.packages('fma')
+library(fma)
+ustreas
+class(ustreas)
+```
+
+```{r}
+ustreas_tsibble <-
+ustreas %>%
+  as_tsibble()
+
+```
+
+```{r}
+ustreas_tsibble %>% head(5)
+```
+
+```{r}
+ustreas_tsibble %>%
+    autoplot() +
+  
+```
+
+```{r}
+major_ticks_seq = seq(0, max(ustreas_tsibble$index), 10)
+major_ticks_seq
+```
+
+```{r}
+minor_ticks_seq = seq(0, max(ustreas_tsibble$index), 5)
+minor_ticks_seq
+```
+
+```{r}
+# if we put 0 as the first argument, we have no data on it, so R will ignore it and solution is the same as with min()
+```
+
+```{r}
+major_ticks_seq = seq(min(pelt$Year), max(pelt$Year), 10)
+major_ticks_seq
+```
+
+```{r}
+minor_ticks_seq = seq(min(pelt$Year), max(pelt$Year), 5)
+minor_ticks_seq
+```
+
+```{r}
+?pelt
+pelt %>%
+  autoplot(Lynx) +
+  scale_x_continuous(breaks = major_ticks_seq, minor_breaks = minor_ticks_seq)
+
+# it is a yearly data - one a year or less - not gonna have seasonal pattern cause seasonality is caused by calendar variations
+```
+
+```{r}
+# if we don't specify break earlier not gonna work, because the data was seen as double, so we create a sequance first
+```
+
+```{r}
+hsales_tsibble <- 
+hsales %>%
+  as_tsibble()
+
+hsales_tsibble %>%
+  autoplot(value) +
+  scale_x_yearmonth(breaks= '5 years', minor_breaks = '1 year')
+
+# index is of yearmonth type, so it can understand data, that's why we don't specify seq earlier
+
+```
+
+```{r}
+autoplot(taylor)
+# if we create tibble it's weird, we need to process it properly
+```
+
+```{r}
+taylor %>%
+  as_tsibble()
+```
+
+```{r}
+?taylor
+```

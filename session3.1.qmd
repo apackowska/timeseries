@@ -1,0 +1,83 @@
+
+```{r}
+library(fpp3)
+library(readr)
+```
+
+
+
+```{r}
+recent_beer <- 
+  aus_production %>%
+  filter(year(Quarter) >= 2000) %>%
+  select(Quarter, Beer)
+
+recent_beer
+```
+
+
+```{r}
+# when we have more lags than data it leads to strange effects
+```
+
+```{r}
+for (i in seq(1, 8)) {
+  lag_name = paste0("Beer_lag", as.character(i))
+  recent_beer[[lag_name]] = lag(recent_beer[["Beer"]], i)
+  
+}
+
+recent_beer
+```
+```{r}
+# if we change this lag from 4 to 1 we see the lag 1 in red
+# weird effect as if they
+# there's a seasonal pattern, that's why it alligns when we set to 4 lags (4 quarters)
+
+n_lag = 4
+lag_name = paste0("Beer_lag", n_lag)
+
+recent_beer %>% 
+  autoplot() +
+  scale_x_yearquarter(breaks = "1 years",
+                      minor_breaks = "1 year") +
+  geom_line(aes_string(x = "Quarter", y = lag_name), # Call attention upon aes_string
+            color = "red",
+            linetype = "dashed")
+```
+```{r}
+recent_beer %>%
+  gg_lag(y = Beer, geom = "point", lags = 4)
+```
+
+```{r}
+recent_beer %>%
+  gg_lag(y = Beer, geom = "point", lags = 1:12)
+
+# 2 column has negative relationship, cause it's in the middle of the pattern, the points are in face opposition, like cancelling out with waves in physics, column 4 has the opposite
+```
+```{r}
+# the heights in correlogram we see the correlation between different quarters
+
+recent_beer %>%
+  ACF() %>%
+  autoplot()
+```
+
+```{r}
+# basic patterns that need to be recognised
+# lag12 has less points than lag1, we need to fix it, look at formula
+# decreasing number in numerator and constant in denominator
+# it can be seen as decreasing heights at the correlogram graph
+```
+
+```{r}
+# trend, seasonal pattern and mix of both
+# in seasonal - check web with calculator -lag 24 starts later, lag 12 has more data points, the alignment is perfect in both tho
+```
+
+```{r}
+# both seasonal and trends
+# 
+```
+

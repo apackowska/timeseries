@@ -1,0 +1,121 @@
+```{r}
+library(fpp3)
+```
+
+
+```{r}
+recent_production <- 
+  aus_production %>%
+  filter(year(Quarter) >= 1992)
+```
+
+```{r}
+beer_production <- 
+  select(recent_production, Quarter, Beer)
+beer_production
+```
+```{r}
+# CREATE TR DATASETS WITH steatch_tsibble()
+.init -> 60% of observations
+.step -> 2 observations at a time
+```
+
+```{r}
+nobs_60 <- as.integer(nrow(beer_production)*0.6)
+nobs_60
+```
+
+
+```{r}
+# streching to make many datasets
+beer_production_cv <-
+  beer_production %>%
+  stretch_tsibble(.init = nobs_60, .step = 2)
+beer_production_cv
+```
+
+```{r}
+# amount of rows in each dataset
+beer_production_cv %>%
+  as_tibble() %>%
+  group_by(.id) %>%
+  summarise(size = n())
+```
+
+
+```{r}
+# how many datasets did we create?
+max(beer_production_cv$.id)
+```
+
+```{r}
+# FIT THE MODELS AND GENERATE FORECASTS FOR 2 SEASONS
+* NAIVE
+* SNAIVE
+* MEAN
+*DRIFT
+```
+
+```{r}
+# fitting to whole dataset would give 1 row for each id and model
+# as many rows as datasets, as many columns as models fitted
+fit_cv <- 
+  beer_production_cv %>%
+  model(
+    Naive = NAIVE(Beer),
+    Snaive = SNAIVE(Beer),
+    Mean = MEAN(Beer),
+    Drift = RW(Beer ~ drift())
+  )
+fit_cv
+```
+
+```{r}
+# up to 2 years, quaterly data
+fc_cv <- 
+  fit_cv %>%
+  forecast(h=2*4)
+fc_cv
+```
+```{r}
+# amount of rows we're getting
+16*4*8
+```
+
+```{r}
+# CREATE A COLUMN h
+# turn this back into a fable again
+fc_cv <- 
+  fc_cv %>%
+  group_by(.id, .model) %>%
+  mutate(h = row_number()) %>%
+  ungroup() %>%
+  as_fable(response = "Beer", distribution = Beer) %>% 
+  select(h, everything()) # Reorder columns
+fc_cv
+```
+```{r}
+# 1 metric per model
+# we could also do this step before adding an h colunmn, cause here we don't need it
+# it will be the same when we write by= .model
+fc_cv %>%
+  accuracy(beer_production) %>%
+  select(.model, MAE, RMSE, MAPE)
+```
+```{r}
+summary_cv_h <- 
+  fc_cv %>%
+  accuracy(beer_production, by = c(".model", "h")) %>%
+  select(h, .model, MAE, RMSE, MAPE)
+# 8x4 = 32
+```
+
+```{r}
+summary_cv_h %>% 
+  ggplot(aes(x = h, y = RMSE, color = .model)) +
+  geom_line()
+```
+```{r}
+# if we want to choose some of the model based on that, we fit this model to our full data
+```
+

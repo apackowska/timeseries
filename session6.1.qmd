@@ -1,0 +1,38 @@
+
+```{r}
+library(fpp3)
+library(seasonal)
+library(fma)
+library(ggplot2)
+rm(list=ls())
+```
+
+```{r}
+# 5_2_A_Diagnostics
+# assumptions about innovation residuals in training model. autocorrelation ACF plot shows autocorrelation, it means that residuals make more information of model than we want to, it's not white noise
+# check: Box-Pierce Test, Ljung box Test, ACF plot
+# solution: lags, external info
+# autocorrelation - dependency on the past
+```
+
+```{r}
+# is model biased, mean of the data is not the same as of resuduals, is not 0 mean of fitted values
+# if we see residuals to be biased, we think the forecast errors will be similarly biased
+# check: t-test
+# solution: subtract the mean of residuals from the forecasts
+```
+
+```{r}
+# if model satisfies both it might be able to be improved, but when it does not fulfil 1 and 2 it can be improved
+```
+
+
+```{r}
+# box-pierce statistics - how strong autocorrelation is in my data
+# chi-square distribution, H0 is that my residual is white noise
+```
+
+```{r}
+# we study homoskedacity along one dimension, 
+```
+

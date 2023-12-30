@@ -1,0 +1,136 @@
+
+```{r}
+rm(list=ls())
+library(fma)
+library(fpp3)
+library(readr)
+
+```
+
+```{r}
+aus_production %>%
+  
+  # Filter data to show appropriate timeframe
+  filter((year(Quarter) >= 1980 & year(Quarter)<= 2000)) %>%
+  
+  autoplot(Electricity) + 
+  
+  # Scale the x axis adequately
+  # scale_x_yearquarter used because the index is a yearquarter column
+  scale_x_yearquarter(date_breaks = "1 year",
+                      minor_breaks = "1 year") +
+  
+  # Flip x-labels by 90 degrees
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+aus_production %>% autoplot(Bricks)
+```
+
+```{r}
+ustreas
+```
+
+```{r}
+ustreas <- 
+  as_tsibble(ustreas)
+```
+
+
+```{r}
+autoplot(ustreas)
+```
+
+
+```{r}
+major_tics = seq(0,max(ustreas$index), 10)
+minor_tics = seq(0, max(ustreas$index), 5)
+ustreas %>%
+  autoplot() +
+  scale_x_continuous(breaks = major_tics, minor_breaks = minor_tics)
+```
+
+```{r}
+pelt %>% head(5)
+```
+
+```{r}
+lynx <- pelt %>% select(Year, Lynx)
+lynx %>% head(5)
+```
+
+```{r}
+lynx %>%
+  autoplot() +
+  scale_x_continuous(breaks = seq(0,max(lynx$Year), 10), 
+                     minor_breaks = seq(0,max(lynx$Year), 5))
+```
+
+```{r}
+
+# not that way, cause index is represented as double
+taylor %>%
+  as_tsibble(taylor)
+```
+
+
+```{r}
+# Define the start time based on information about the Taylor series
+start_time <- as.POSIXct("2000-06-05 00:00:00", tz = "UTC")
+
+# We specify by = 1800 because the lowest unit we specified in our datetime object
+# start_time are seconds (hh:mm:ss). Therefore this date-time object will increase
+# in steps of seconds and there are 1800 seconds in half an our (30 * 60)
+# We specify as well that the sequence needs to be of the same length as the taylor
+# object
+datetime_seq <- start_time + seq(from = 0, by = 1800, length.out = length(taylor))
+
+# Convert the time series to a tsibble
+taylor_tsibble <- 
+  tibble(
+    index = datetime_seq,
+    value = as.numeric(taylor)
+  ) %>%
+  as_tsibble(index = index)
+
+# Check the resulting tsibble
+taylor_tsibble
+  
+```
+```{r}
+autoplot(taylor_tsibble)
+
+```
+```{r}
+# Create auxiliary column signalling the yearweek
+taylor_tsibble <- 
+  taylor_tsibble %>% 
+  mutate(
+    week = yearweek(index)
+  )
+
+# Extract first week and compute 4th week
+week1 <-  taylor_tsibble$week[1]
+week4 <- week1 + 3
+
+# Filter for first four weeks and store in new object
+taylor_tsibble_4w <- 
+  taylor_tsibble %>% 
+    filter(
+      week >= week1, 
+      week <= week4
+    )
+
+# Depict result
+taylor_tsibble_4w %>% 
+  
+  autoplot() + 
+  
+  # Used because index is date-time
+  scale_x_datetime(
+    breaks = "1 week",
+    minor_breaks = "1 day"
+  )
+```
+

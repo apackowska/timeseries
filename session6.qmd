@@ -1,0 +1,162 @@
+```{r}
+library(fpp3)
+library(seasonal)
+library(fma)
+library(ggplot2)
+rm(list=ls())
+```
+
+
+
+```{r}
+retail_series <- aus_retail %>%
+  filter(`Series ID` == "A3349767W")
+
+head(retail_series)
+```
+```{r}
+retail_series %>% autoplot()
+```
+
+```{r}
+# let us examine the guerrero feature to see which box-cox transformation would
+# be more appropriate.
+lambda <- retail_series %>%
+  features(Turnover, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+lambda
+```
+
+
+```{r}
+dcmp <- 
+  retail_series %>%
+  model(stl = STL(log(Turnover))) %>%
+  components()
+dcmp
+```
+
+
+
+```{r}
+dcmp %>%
+  autoplot()
+```
+```{r}
+season_adjust <- 
+  dcmp %>%
+  select(season_adjust)
+season_adjust
+```
+
+
+```{r}
+season_adjust %>%
+  autoplot()
+```
+
+```{r}
+dcmp %>%
+  autoplot(trend)
+
+```
+
+```{r}
+fit_dcmp <- 
+  season_adjust %>%
+  model(
+    drift_model= RW(season_adjust ~ drift())
+  )
+
+```
+
+```{r}
+fitted <- 
+  fit_dcmp %>%
+  augment()
+```
+```{r}
+fc <- 
+  fit_dcmp %>%
+  forecast(h = 12)
+fc
+```
+```{r}
+fc %>%
+  autoplot(season_adjust) +
+  autolayer(fitted, .fitted, color= "blue", linetype = "dashed")
+```
+
+
+```{r}
+fit_dcmp <- 
+  fit_dcmp %>% augment()
+```
+
+
+```{r}
+seasonal <- 
+  dcmp %>%
+  select(season_year)
+seasonal
+```
+```{r}
+seasonal %>%
+  autoplot()
+```
+```{r}
+fit_seas <- 
+  seasonal %>% 
+  model(snaive = SNAIVE(season_year))
+
+fitted_seas <- 
+  fit_seas %>% augment()
+```
+
+```{r}
+fc_seas <- 
+  fit_seas %>% 
+    forecast(h = 36)
+
+fc_seas
+  
+```
+```{r}
+fc_seas %>% 
+  autoplot(seasonal) +
+  autolayer(fitted_seas, .fitted, color = "blue", linetype ="dashed")
+
+```
+
+```{r}
+fit_dcmp <- 
+  retail_series %>%
+  model(decomposition_model(
+    STL(log(Turnover)),
+    RW(season_adjust~ drift()),
+    SNAIVE(season_year)
+  ))
+fitted_dcmp <- 
+fit_dcmp %>%
+  augment()
+```
+
+
+```{r}
+fitted_dcmp %>% autoplot()
+```
+```{r}
+fc_decomp <- 
+  fit_dcmp %>%
+  forecast(h=36)
+  
+```
+
+```{r}
+fc_decomp %>%
+  autoplot(retail_series) +
+  autolayer(fitted_dcmp, .fitted, color = "blue", linetype ="dashed")
+
+```
+

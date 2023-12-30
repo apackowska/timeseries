@@ -1,0 +1,155 @@
+
+
+```{r}
+rm(list=ls())
+library(fpp3)
+library(readr)
+library(readxl)
+```
+
+
+```{r}
+# comment on homework, match the graphs, graph one is not a seasonal pattern, cause in daily data we need to see one level more, so weekly data to identify any seasonal pattern
+```
+
+```{r}
+# white noise, no independent assumption, there's a strong correlation between observation at t and t-1
+# 95 % confidence interval, so if you write 100 lags you can expect 5 of them (5%) not within bonds
+```
+
+```{r}
+total_private <- 
+  us_employment %>%
+  filter(Title == "Total Private")
+total_private
+```
+```{r}
+# time-plot with resolution to see the beginning and end of every year
+
+total_private %>%
+  autoplot() +
+  scale_x_yearmonth(breaks = "5 year", minor_breaks= "1 year") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+
+
+```{r}
+# create and ACF plot of a sufficient number of lags to spot seasonality
+# in ACF if we don't specify what to plot, it won't take into account key and index, but there were 2 more columns, that's why ACF need to have an argument
+# at least 24 lags cause data is monthly, any multiple of 12
+
+total_private %>%
+  ACF(Employed, lag_max = 4*12) %>%
+  autoplot()
+```
+```{r}
+head(PBS)
+```
+```{r}
+# decomposition of time series
+
+# additive decomposition variance of the seasonal component stays constant regardless of the level (value) of trend of time series
+
+# for white noise the remainder in the decomposition should be perfectly random
+```
+
+
+```{r}
+us_retail_employment <- us_employment %>%
+  filter(year(Month) >= 1990, Title == "Retail Trade") %>%
+  select(-Series_ID)
+autoplot(us_retail_employment, Employed) +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US retail")
+```
+
+```{r}
+# multiplicative decomposition the variance of seasonal component goes accordingly
+```
+
+
+```{r}
+a10 <- PBS %>%
+  filter(ATC2 == "A10") %>%
+  select(Month, Concession, Type, Cost) %>%
+  summarise(TotalC = sum(Cost)) %>%
+  mutate(Cost = TotalC / 1e6)
+
+autoplot(a10, Cost) +
+  labs(y = "$ (millions)",
+       title = "Australian antidiabetic drug sales")
+```
+
+```{r}
+# sometimes we have models that only accept additive type of data, so we transform
+```
+
+```{r}
+a10 <- mutate(a10, sqrt_cost = sqrt(Cost), 
+              cbrt_cost = Cost^(1/3), 
+              log_cost = log(Cost), 
+              inv_cost = -1/Cost)
+a10
+```
+
+```{r}
+dcmp <-
+  a10 %>%
+  model(stl= STL(sqrt_cost))
+components(dcmp)
+```
+
+```{r}
+a10 %>%
+  autoplot(inv_cost)
+```
+```{r}
+# matrix if rank = number of rows it means there's one and only solution
+```
+
+```{r}
+# the bars in decomposition graph, it takes the smallest variance, it is the measure of the variance and scale it to other 2 graphs
+# if the range of variance of remeinder is the smallest, it's best
+# for a good model we prefer the trend and seasonal graphs to make the most of the variance in data
+```
+
+```{r}
+a10 <- PBS %>%
+  filter(ATC2 == "A10") %>%
+  select(Month, Concession, Type, Cost) %>%
+  summarise(TotalC = sum(Cost)) %>%
+  mutate(Cost = TotalC / 1e6)
+
+autoplot(a10, Cost) +
+  labs(y = "$ (millions)",
+       title = "Australian antidiabetic drug sales")
+```
+
+
+```{r}
+x11_dcmp <- a10 %>%
+  model(x11 = X_13ARIMA_SEATS(Cost ~ x11())) %>%
+  components()
+
+x11_dcmp
+```
+ 
+
+```{r}
+x11_dcmp %>%
+  as_tsibble() %>%
+  autoplot(Cost, colour="gray") +
+  geom_line(aes(y=trend), colour = "#D55E00") +
+  labs(
+    y = "$ (millions)",
+    title = "Australian antidiabetic drug sales"
+  )
+```
+```{r}
+x11_dcmp %>% autoplot()
+
+```
+
+
